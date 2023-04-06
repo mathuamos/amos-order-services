@@ -44,7 +44,7 @@ CartController is used to manage recipes and cart  apis
 
 ## Apis
 
-<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.32.png"/>
+![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.32.png)
 
 <img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.41.png"/>
 
