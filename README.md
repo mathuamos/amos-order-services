@@ -36,16 +36,17 @@ Follow the instruction in the Api document to run the api calls
 
 
 OrdersController is used to manage orders api
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.04.png)
+<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.04.png"/>
 
 CartController is used to manage recipes and cart  apis
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.12.png)
+<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.12.png"/>
 
 
 ## Apis
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.32.png)
 
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.41.png)
+<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.32.png"/>
+
+<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.41.png"/>
 
 ![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.21.12.png)
 
