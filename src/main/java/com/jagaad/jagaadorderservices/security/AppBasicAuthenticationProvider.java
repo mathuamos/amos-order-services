@@ -1,11 +1,12 @@
-package com.payment.gateway.security.config.api;
+package com.jagaad.jagaadorderservices.security;
 
-import com.payment.gateway.security.entities.UserTypes;
-import com.payment.gateway.security.entities.Users;
-import com.payment.gateway.security.repositories.UserRepository;
-import com.payment.gateway.security.repositories.UserTypeRepository;
+import com.jagaad.jagaadorderservices.configs.ApplicationProperties;
+import com.jagaad.jagaadorderservices.entities.Users;
+import com.jagaad.jagaadorderservices.services.UserService;
+import com.jagaad.jagaadorderservices.utils.AppFunctions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.LockedException;
@@ -20,23 +21,25 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Date;
 
-/**
- * @author patrick on 7/7/20
- * @project payment
- */
+
 @Component
 public class AppBasicAuthenticationProvider extends DaoAuthenticationProvider {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserTypeRepository userTypeRepository;
 
 
     @Autowired
-    @Qualifier("customUserApiDetailsService")
+    private UserService userService;
+
+
+
+    @Autowired
+    AppFunctions appFunctions;
+
+
+  @Autowired
+ @Qualifier("customUserApiDetailsService")
+
     @Override
     public void setUserDetailsService(UserDetailsService userDetailsService) {
         super.setUserDetailsService(userDetailsService);
@@ -51,14 +54,15 @@ public class AppBasicAuthenticationProvider extends DaoAuthenticationProvider {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String ip = request.getHeader("X-Forwarded-For") == null ? request.getRemoteAddr() : request.getHeader("X-Forwarded-For");
 
-        String consumerKey = authentication.getName();
+        String username = authentication.getName();
 
-        UserTypes userTypes = userTypeRepository.findFirstByName(UserTypes.API_USER_TYPE);
-        if (null == userTypes) {
-            error.append("Sorry something is wrong!");
-            throw new BadCredentialsException(error.toString());
-        }
-        Users user = userRepository.findByApiConsumerKeyAndUserType(consumerKey, userTypes.getId());
+
+       boolean ifEmailIsValid= appFunctions.validateEmail(username);
+
+       if(!ifEmailIsValid)
+           throw new BadCredentialsException("email not valid");
+
+        Users user = userService.findUserByUsername(username);
 
         if (null == user) {
             error.append("Sorry invalid credentials!");
@@ -67,10 +71,6 @@ public class AppBasicAuthenticationProvider extends DaoAuthenticationProvider {
 
         try {
             Authentication auth = super.authenticate(authentication);
-
-            user.setLastLogin(new Date());
-            user.setIp(ip);
-            userRepository.save(user);
 
             return auth;
         } catch (LockedException e) {
@@ -82,14 +82,9 @@ public class AppBasicAuthenticationProvider extends DaoAuthenticationProvider {
         } catch (CredentialsExpiredException e) {
             throw new CredentialsExpiredException(error.toString());
         } catch (BadCredentialsException e) {
-            if (userRepository.findByApiConsumerKey(consumerKey) != null) {
+            error.append("Sorry credentials does't match our records.");
+            throw new BadCredentialsException(error.toString());
 
-                error.append("Sorry credentials does't match our records.");
-                throw new BadCredentialsException(error.toString());
-            } else {
-                error.append("User does not exist");
-                throw new UsernameNotFoundException(error.toString());
-            }
         }
     }
 }

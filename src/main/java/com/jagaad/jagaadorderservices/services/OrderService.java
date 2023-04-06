@@ -1,28 +1,23 @@
-package com.shoppingcart.services;
+package com.jagaad.jagaadorderservices.services;
 
 
-import com.shoppingcart.dtos.CancelOrderDto;
-import com.shoppingcart.dtos.CartDetailsRequestDto;
-import com.shoppingcart.dtos.CheckoutDto;
-import com.shoppingcart.dtos.ReOrderOrderDto;
-import com.shoppingcart.entities.Cart;
-import com.shoppingcart.entities.CartItems;
-import com.shoppingcart.entities.Orders;
-import com.shoppingcart.entities.Products;
-import com.shoppingcart.repositories.CartItemsRepository;
-import com.shoppingcart.repositories.CartRepository;
-import com.shoppingcart.repositories.OrdersRepository;
-import com.shoppingcart.repositories.ProductsRepository;
-import com.shoppingcart.utils.OrderStatus;
-import com.shoppingcart.utils.RecordStatus;
-import com.shoppingcart.utils.ResponseModel;
+import com.jagaad.jagaadorderservices.dtos.CancelOrderDto;
+import com.jagaad.jagaadorderservices.dtos.CheckoutDto;
+import com.jagaad.jagaadorderservices.dtos.ReactivateDto;
+import com.jagaad.jagaadorderservices.dtos.UpdateOrderDto;
+import com.jagaad.jagaadorderservices.entities.*;
+import com.jagaad.jagaadorderservices.exceptions.CustomExceptionNotFound;
+import com.jagaad.jagaadorderservices.repositories.*;
+import com.jagaad.jagaadorderservices.utils.AppFunctions;
+import com.jagaad.jagaadorderservices.utils.OrderStatus;
+import com.jagaad.jagaadorderservices.utils.RecordStatus;
+import com.jagaad.jagaadorderservices.utils.ResponseModel;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -33,56 +28,82 @@ import java.util.concurrent.atomic.AtomicReference;
 @Log4j2
 public class OrderService {
 
-    @Autowired
-    private CartRepository cartRepository;
-    @Autowired
-    private CartItemsRepository cartItemsRepository;
-    @Autowired
-    private ProductsRepository productsRepository;
-    @Autowired
-    private OrdersRepository ordersRepository;
-    @Autowired
-    private CartService cartService;
+    private final CartRepository cartRepository;
+    private final CartItemsRepository cartItemsRepository;
+    private final RecipesRepository recipesRepository;
+    private final OrdersRepository ordersRepository;
+    private final CartService cartService;
+    private final AppFunctions appFunctions;
+    private final UserRepository userRepository;
+
+
+    public OrderService(CartRepository cartRepository, CartItemsRepository cartItemsRepository, RecipesRepository recipesRepository, OrdersRepository ordersRepository, CartService cartService, AppFunctions appFunctions, UserRepository userRepository) {
+        this.cartRepository = cartRepository;
+        this.cartItemsRepository = cartItemsRepository;
+        this.recipesRepository = recipesRepository;
+        this.ordersRepository = ordersRepository;
+        this.cartService = cartService;
+        this.appFunctions = appFunctions;
+        this.userRepository = userRepository;
+    }
 
     /**
-     * @param checkoutDto
-     * @return
+     * method to create order
      */
-    public ResponseModel checkOut(CheckoutDto checkoutDto) {
+    public ResponseModel createOrder(CheckoutDto checkoutDto) {
+
+
+
+        //get login in user
+        Users user = appFunctions.getLoginUser();
+
+
 
         //check if user has an active
-        Cart cart = cartRepository.findFirstByUserIdAndStatus(checkoutDto.getUserId(), RecordStatus.ACTIVE.toString());
+        Cart cart = cartRepository.findFirstByUserIdAndStatus(user.getId(), RecordStatus.ACTIVE.toString());
         if (null == cart)
-            return new ResponseModel("failed", "Cart not found");
+
+            throw new CustomExceptionNotFound("Cart not found");
 
         List<CartItems> cartItems = cartItemsRepository.findAllByCartIdAndStatus(cart.getId(), RecordStatus.ACTIVE.toString());
         //check if cart is empty
         if (cartItems.size() < 1)
             return new ResponseModel("failed", "Empty cart");
 
-        //check if products in car are active and have suffient
+
+
+
+        //check if user is editing order
+        Orders orderchecker =ordersRepository.findFirstByCartIdAndStatus(cart.getId(),RecordStatus.EDITING.toString());
+
+        if (orderchecker != null) {
+            return new ResponseModel("failed", "you have an order which is on editing mode");
+        }
+
+
+        //check if products in car are active
 
         AtomicReference<Boolean> verifyCartProducts = new AtomicReference<>(true);
         AtomicReference<String> verificationProduct = new AtomicReference<>("Products validation");
         AtomicReference<BigDecimal> totalAmount = new AtomicReference<>(BigDecimal.ZERO);
         cartItems.forEach(cartItem -> {
-            //validate if product exists
-            Optional<Products> productsOptional = productsRepository.findById(cartItem.getProductId());
+            //validate if recipe exists
+            Optional<Recipes> productsOptional = recipesRepository.findById(cartItem.getRecipeId());
             if (productsOptional.isEmpty()) {
                 verifyCartProducts.set(false);
-                verificationProduct.set("Product validation failed");
+                verificationProduct.set("Recipe validation failed");
                 return;
             }
 
-            Products product = productsOptional.get();
-            //check if stock exceed the quantity being bought
-            if (product.getStockQuantity() < cartItem.getQuantity() || !product.getStatus().equalsIgnoreCase(RecordStatus.ACTIVE.toString())) {
+            Recipes recipes = productsOptional.get();
+            //check if recipe is active
+            if (!recipes.getStatus().equalsIgnoreCase(RecordStatus.ACTIVE.toString())) {
                 verifyCartProducts.set(false);
                 verificationProduct.set("Product validation failed");
                 return;
             }
 
-            totalAmount.set(cartItem.getPrice().add(totalAmount.get()));
+            totalAmount.set(cartItem.getPricePerPilote().multiply(new BigDecimal(cartItem.getPilotesCount())).add(totalAmount.get()));
         });
 
         if (!verifyCartProducts.get()) {
@@ -94,17 +115,18 @@ public class OrderService {
         Orders order = new Orders();
         order.setOrderStatus(OrderStatus.PAID.toString());
         order.setCartId(cart.getId());
-        order.setUserId(checkoutDto.getUserId());
+        order.setUserId(user.getId());
         order.setPaymentMethod(checkoutDto.getPaymentMethod());
         order.setItemsCount(cartItems.size());
         order.setTotalAmount(totalAmount.get());
         order.setStatus(RecordStatus.ACTIVE.toString());
         order.setUpdatedAt(new Date());
         order.setCreatedAt(new Date());
+        order.setAddress(checkoutDto.getAddress());
+        order.setComment(checkoutDto.getComment());
         ordersRepository.save(order);
 
-        // Update inventory
-        updateProductsQuantity(cartItems);
+
         //update cart
         cart.setStatus(RecordStatus.PROCESSED.toString());
         cartRepository.save(cart);
@@ -114,112 +136,160 @@ public class OrderService {
 
 
     /**
-     *
-     * @param cartItems
-     * @return
+     * method to cancel order
      */
-    public List<Products> updateProductsQuantity(List<CartItems> cartItems) {
-        List<Products> products = new ArrayList<>();
-        cartItems.forEach(cartItem -> {
-            //validate if product exists
-            Products product = productsRepository.findById(cartItem.getProductId()).get();
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-            products.add(product);
-        });
-        productsRepository.saveAll(products);
-        return products;
-    }
+        public ResponseModel cancelOrder(CancelOrderDto cancelOrderDto) {
+    
+            //get login in user
+            Users user = appFunctions.getLoginUser();
+    
+    
+            //check if orders  for a user if
+            Date checkOrderWasCreatedAfterDate = appFunctions.getSupportedOrderUpdateTime();
+            Orders order = ordersRepository.findFirstByIdAndUserIdAndCreatedAtAfter(cancelOrderDto.getOrderId(), user.getId(), checkOrderWasCreatedAfterDate);
+            if (null == order) {
+                throw new CustomExceptionNotFound("Order not found");
+            }
+            if (!order.getOrderStatus().equalsIgnoreCase(OrderStatus.PAID.toString())) {
+                return new ResponseModel("failed", "Sorry you are not allowed  to cancel this order at the moment");
+            }
+    
+            order.setOrderStatus(OrderStatus.CANCELLED.toString());
+            order.setStatus(OrderStatus.CANCELLED.toString());
+            order.setComment(cancelOrderDto.getReason());
+            ordersRepository.save(order);
+    
+            return new ResponseModel("success", "Order cancel successfully");
+        }
+
+    public ResponseEntity<?> reactivateCart(ReactivateDto reactivateDto) {
 
 
-    /**
-     * @return
-     */
-    public ResponseModel cancelOrder(CancelOrderDto cancelOrderDto) {
-        //check if orders  for a user if
-        Orders order = ordersRepository.findFirstByIdAndUserId(cancelOrderDto.getOrderId(), cancelOrderDto.getUserId());
+        //get login in user
+        Users user = appFunctions.getLoginUser();
+
+        Date checkOrderWasCreatedAfterDate = appFunctions.getSupportedOrderUpdateTime();
+        Orders order = ordersRepository.findFirstByIdAndUserIdAndCreatedAtAfter(reactivateDto.getOrderId(), user.getId(), checkOrderWasCreatedAfterDate);
         if (null == order) {
-            return new ResponseModel("failed", "Order not found");
+            ResponseEntity.badRequest().body(new ResponseModel("failed", "Order not found"));
         }
+        assert order != null;
         if (!order.getOrderStatus().equalsIgnoreCase(OrderStatus.PAID.toString())) {
-            return new ResponseModel("failed", "Sorry you are not allowed  to cancel this order at the moment");
+            ResponseEntity.badRequest().body(new ResponseModel("failed", "Sorry you are not allowed  to cancel this order at the moment"));
         }
 
-        order.setOrderStatus(OrderStatus.CANCELLED.toString());
-        order.setStatus(OrderStatus.CANCELLED.toString());
-        order.setComment(cancelOrderDto.getReason());
+        Cart cart = order.getCartLink();
+        cart.setStatus(RecordStatus.ACTIVE.toString());
+        cart.setUpdatedAt(new Date());
+        cartRepository.save(cart);
+
+        order.setStatus(RecordStatus.EDITING.toString());
+        order.setUpdatedAt(new Date());
         ordersRepository.save(order);
 
-        return new ResponseModel("success", "Order cancel successfully");
+        return ResponseEntity.ok(new ResponseModel("success", "Cart reactivated", cartService.getPreparedCarDetails(cart)));
+    }
+
+    public ResponseEntity<?> myOrders() {
+        Users user = appFunctions.getLoginUser();
+
+        log.info("User  in session {} email {} id {}", user.getFirstName(),user.getEmail(),user.getId());
+        List<Orders> orders = ordersRepository.findAllByUserIdOrderByUpdatedAtDesc(user.getId());
+        return ResponseEntity.ok(new ResponseModel("success", "success", orders));
     }
 
 
-    /**
-     * @param reOrderOrderDto
-     * @return
-     */
-    public Object reorderOrder(ReOrderOrderDto reOrderOrderDto) {
-        Orders order = ordersRepository.findFirstByIdAndUserId(reOrderOrderDto.getOrderId(), reOrderOrderDto.getUserId());
-        if (null == order) {
-            return new ResponseModel("failed", "Order not found");
-        }
-        //Get user active cart else create one
-
-        //Check if customer have active cart and update else create
-        Cart cart1 = cartRepository.findFirstByUserIdAndStatus(reOrderOrderDto.getUserId(), RecordStatus.ACTIVE.toString());
-        if (null != cart1) {
-            cart1.setStatus(RecordStatus.DELETED.toString());
-            cartRepository.save(cart1);
-        }
-
-        Cart cart = new Cart();
-        cart.setItemsCount(0);
-        cart.setTotalAmount(BigDecimal.ZERO);
-        cart.setStatus(RecordStatus.ACTIVE.toString());
-        cart.setUserId(reOrderOrderDto.getUserId());
-        cart.setCreatedAt(new Date());
-        cart.setUpdatedAt(new Date());
-        cart = cartRepository.save(cart);
-        Long cartId = cart.getId();
-        // get items
-        List<CartItems> cartItems = cartItemsRepository.findAllByCartIdAndStatus(order.getCartId(), RecordStatus.ACTIVE.toString());
 
 
-        List<CartItems> newCartItems = new ArrayList<>();
 
-        AtomicReference<BigDecimal> total = new AtomicReference<>(BigDecimal.ZERO);
-        cartItems.forEach(cartItems1 -> {
-            //check if product still exists and new pricing
-            Optional<Products> products = productsRepository.findById(cartItems1.getProductId());
-            if (products.isEmpty()) {
+
+    public ResponseModel updateOrder(UpdateOrderDto updateOrderDto) {
+
+
+        Users user = appFunctions.getLoginUser();
+        log.info("User  in session {} email {} id {}", user.getFirstName(),user.getEmail(),user.getId());
+
+        //check if user has an active
+        Cart cart = cartRepository.findFirstByUserIdAndStatus(user.getId(), RecordStatus.ACTIVE.toString());
+        if (null == cart)
+//            return new ResponseModel("failed", "Cart not found");
+            throw new CustomExceptionNotFound("Cart not found");
+
+        List<CartItems> cartItems = cartItemsRepository.findAllByCartIdAndStatus(cart.getId(), RecordStatus.ACTIVE.toString());
+        //check if cart is empty
+        if (cartItems.size() < 1)
+            throw new CustomExceptionNotFound("Cart is Empty");
+
+        //check if products in car are active
+
+        AtomicReference<Boolean> verifyCartProducts = new AtomicReference<>(true);
+        AtomicReference<String> verificationProduct = new AtomicReference<>("Products validation");
+        AtomicReference<BigDecimal> totalAmount = new AtomicReference<>(BigDecimal.ZERO);
+        cartItems.forEach(cartItem -> {
+            //validate if product exists
+            Optional<Recipes> productsOptional = recipesRepository.findById(cartItem.getRecipeId());
+            if (productsOptional.isEmpty()) {
+                verifyCartProducts.set(false);
+                verificationProduct.set("Product validation failed");
                 return;
             }
-            Products product = products.get();
-            if (product.getStockQuantity() < cartItems1.getQuantity() || !product.getStatus().equalsIgnoreCase(RecordStatus.ACTIVE.toString())) {
+
+            Recipes recipes = productsOptional.get();
+            //check if stock exceed the quantity being bought
+            if (!recipes.getStatus().equalsIgnoreCase(RecordStatus.ACTIVE.toString())) {
+                verifyCartProducts.set(false);
+                verificationProduct.set("Product validation failed");
                 return;
             }
-            CartItems cartItem = new CartItems();
-            cartItem.setCartId(cartId);
-            cartItem.setProductId(cartItems1.getProductId());
-            cartItem.setPrice(product.getPrice());
-            cartItem.setDiscountPercent(product.getDiscountPercent());
-            cartItem.setQuantity(cartItems1.getQuantity());
-            cartItem.setStatus(RecordStatus.ACTIVE.toString());
-            cartItem.setCreatedAt(new Date());
-            cartItem.setUpdatedAt(new Date());
-            newCartItems.add(cartItem);
 
-            total.set(total.get().add(product.getPrice()));
+            totalAmount.set(cartItem.getPricePerPilote().multiply(new BigDecimal(cartItem.getPilotesCount())).add(totalAmount.get()));
         });
 
-        cartItemsRepository.saveAll(newCartItems);
-        cart.setTotalAmount(total.get());
-        cart.setItemsCount(newCartItems.size());
-        cart = cartRepository.save(cart);
-        CartDetailsRequestDto cartDetailsRequestDto=new CartDetailsRequestDto();
-        cartDetailsRequestDto.setUserId(reOrderOrderDto.getUserId());
+        if (!verifyCartProducts.get()) {
+            throw new CustomExceptionNotFound("item not valid "+verificationProduct.get());
+
+        }
+
+        //get order and check if its in editing mode
+
+        Orders order =ordersRepository.findFirstByIdAndUserIdAndStatus(updateOrderDto.getOrderId(),user.getId(),RecordStatus.EDITING.toString());
+
+        if (order == null) {
+            return new ResponseModel("failed", "order not found or not in editing mode");
+
+        }
+
+        //update order
+
+        order.setOrderStatus(OrderStatus.PAID.toString());
+        order.setCartId(cart.getId());
+        order.setUserId(user.getId());
+        order.setPaymentMethod(updateOrderDto.getPaymentMethod());
+        order.setItemsCount(cartItems.size());
+        order.setTotalAmount(totalAmount.get());
+        order.setStatus(RecordStatus.ACTIVE.toString());
+        order.setUpdatedAt(new Date());
+        order.setAddress(updateOrderDto.getAddress());
+        order.setComment(updateOrderDto.getComment());
+        ordersRepository.save(order);
+
+        //update cart
+        cart.setStatus(RecordStatus.PROCESSED.toString());
+        cartRepository.save(cart);
+
+        return new ResponseModel("success", "Order updated successfully");
+    }
 
 
-        return new ResponseModel("success", "Reorder successfully");
+
+    public ResponseEntity<?> searchOrder(String searchKey){
+
+        List<Users> users=userRepository.findAllByFirstNameContainsOrLastNameContains(searchKey,searchKey);
+
+        List<Orders> orders=ordersRepository.findAllByUserLinkIn(users);
+
+        return ResponseEntity.ok(new ResponseModel("success","success",orders));
+
     }
 
 }

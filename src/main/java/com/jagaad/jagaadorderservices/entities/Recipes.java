@@ -1,6 +1,9 @@
-package com.shoppingcart.entities;
+package com.jagaad.jagaadorderservices.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.Column;
@@ -10,10 +13,12 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "products")
+@Table(name = "recipes")
 @Getter
 @Setter
-public class Products extends AbstractBaseEntity implements Serializable {
+@AllArgsConstructor
+@NoArgsConstructor
+public class Recipes extends AbstractBaseEntity implements Serializable {
 
     @Column(name = "name")
     private String name;
@@ -21,18 +26,13 @@ public class Products extends AbstractBaseEntity implements Serializable {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "stock_quantity")
-    private Integer stockQuantity;
+
 
     @Column(name = "price")
     private BigDecimal price;
 
-    @Column(name = "discount_percent")
-    private Integer discountPercent;
 
-    @Column(name = "category_id")
-    private Long categoryId;
-
+    @JsonIgnore
     @Column(name = "priority")
     private Integer priority;
 }

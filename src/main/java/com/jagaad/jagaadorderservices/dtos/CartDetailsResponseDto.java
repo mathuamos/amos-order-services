@@ -1,4 +1,4 @@
-package com.shoppingcart.dtos;
+package com.jagaad.jagaadorderservices.dtos;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -10,19 +10,18 @@ import java.util.List;
 @Setter
 public class CartDetailsResponseDto {
 
-    private BigDecimal total;
-    private BigDecimal totalDiscount;
+    private Long cartId;
+    private BigDecimal totalAmount;
     private List<ItemDetails> itemDetails;
 
     @Setter
     @Getter
     public static class ItemDetails {
-        private Long productId;
-        private String productName;
-        private BigDecimal price;
-        private Integer discountPercent;
-        private BigDecimal discountAmount;
-        private Integer quantity;
+        private Long id;
+        private Long recipeId;
+        private String recipeName;
+        private BigDecimal pricePerPilotes;
+        private Integer noOfPilotes;
     }
 
 }

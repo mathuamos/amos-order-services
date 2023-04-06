@@ -1,7 +1,8 @@
-package com.shoppingcart.repositories;
+package com.jagaad.jagaadorderservices.repositories;
 
 
-import com.shoppingcart.entities.Cart;
+
+import com.jagaad.jagaadorderservices.entities.Cart;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

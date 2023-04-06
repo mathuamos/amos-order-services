@@ -1,13 +1,11 @@
-package com.shoppingcart.entities;
+package com.jagaad.jagaadorderservices.entities;
 
-
-import com.shoppingcart.utils.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jagaad.jagaadorderservices.utils.OrderStatus;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
@@ -16,6 +14,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class Orders extends AbstractBaseEntity implements Serializable {
+
     @Column(name = "cart_id")
     private Long cartId;
 
@@ -36,5 +35,19 @@ public class Orders extends AbstractBaseEntity implements Serializable {
 
     @Column(name = "comment")
     private String comment;
+
+    @Column(name = "address")
+    private String address;
+
+
+    @JsonIgnore
+    @JoinColumn(name = "cart_id",referencedColumnName = "id",insertable = false,updatable = false)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    private Cart cartLink;
+
+    @JoinColumn(name = "user_id",referencedColumnName = "id",insertable = false,updatable = false)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private Users userLink;
 
 }

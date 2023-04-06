@@ -1,14 +1,11 @@
-package com.payment.gateway.security;
+package com.jagaad.jagaadorderservices.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
-/**
- * @author patrick on 5/24/19
- * @project payment
- */
+
 public class SecurityUtils {
 
     //get current auth user

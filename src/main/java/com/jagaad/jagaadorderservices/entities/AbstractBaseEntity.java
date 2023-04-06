@@ -1,6 +1,7 @@
 package com.jagaad.jagaadorderservices.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jagaad.jagaadorderservices.utils.RecordStatus;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,11 @@ import java.util.Date;
 @MappedSuperclass
 @Getter
 @Setter
-public abstract class AbstractBaseEntity {
+public abstract class   AbstractBaseEntity {
+
+
+    //has some common columns shared by other entities
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,6 +28,7 @@ public abstract class AbstractBaseEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();
 
+    @JsonIgnore
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;

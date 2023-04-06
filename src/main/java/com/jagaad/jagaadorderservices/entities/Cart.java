@@ -1,13 +1,10 @@
-package com.shoppingcart.entities;
+package com.jagaad.jagaadorderservices.entities;
 
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "cart")
@@ -18,11 +15,13 @@ public class Cart extends AbstractBaseEntity implements Serializable {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "total_amount")
-    private BigDecimal totalAmount;
+    
+    @Column(name = "recipes_count")
+    private Integer recipesCount;
 
-    @Column(name = "items_count")
-    private Integer itemsCount;
+    @JoinColumn(name = "user_id",referencedColumnName = "id",insertable = false,updatable = false)
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    private Users userLink;
 
 
 }
