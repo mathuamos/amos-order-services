@@ -36,31 +36,24 @@ Follow the instruction in the Api document to run the api calls
 
 
 OrdersController is used to manage orders api
-<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.04.png"/>
+1.   **/api/v1/myorders** -> used to get orders of a specific user
+2. **/api/v1/checkout**  -> used to checkout cart in order to make order
+3. **/api/v1/reactivate-cart**  -> used to reactive order for editing purpose
+4. **/api/v1/update-order** -> used to update order after editing
+5. **/api/v1/cancel-order** -> used to cancel order 
+
 
 CartController is used to manage recipes and cart  apis
-<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 10.08.12.png"/>
+1. **/api/v1/recipes** -> it gets all active available  Majorcan recipes
+2. **/api/v1/add-to-cart** -> used to add recipe to cart
+3. **api/v1/get-cart-details** -> used to get cart details
+4. **/api/v1/remove-recipe** -> used to remove item in cart
+5. **/api/v1/modify-cart-item**  -> used to update/edit cart item
 
 
 ## Apis
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.32.png)
-
-<img src="/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.20.41.png"/>
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.21.12.png)
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.21.26.png)
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.25.15.png)
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.25.26.png)
+Kindly use swagger for api reference
+http://localhost:8080/swagger-ui/index.html#/
 
 
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.25.41.png)
 
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.25.56.png)
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.26.12.png)
-
-
-![](/Users/amosmathu/Desktop/Screenshot 2023-04-06 at 11.26.24.png)
